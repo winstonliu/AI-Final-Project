@@ -122,9 +122,22 @@ def make_move(board, move, player):
     return;
 
 
+def get_score_difference(board):
+    ''' Return the score difference of the current board.
+    Returns X-O. '''
+    score = 0;
+    for row in board:
+        for c in row:
+            if c == 'X':
+                score += 1;
+            elif c == 'O':
+                score -= 1;
+    return score;
+
+
 def get_score(board):
     ''' Return the score of the current board.
-    Returns Dictionary {'X': score_x, 'O': score_y}. '''
+    Returns {'X':x_score, 'O':o_score}. '''
     xs = 0;
     os = 0;
     for row in board:

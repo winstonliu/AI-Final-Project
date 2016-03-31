@@ -3,11 +3,10 @@ from copy import deepcopy;
 from main import reversi
 
 
-def get_move(board, player, alpha=float('-inf'), beta=float('inf'), passed=False):
+def get_move(board, player, alpha=float('-inf'), beta=float('inf')):
     # Terminate search at the bottom of the tree
     if len(reversi.get_valid_moves(board, player)) == 0:
-        result = reversi.get_score(board);
-        return None, result['X'] - result['O'];
+        return None, reversi.get_score_difference(board);
 
     if player == 'X':
         best_score = float('-inf');
@@ -59,6 +58,7 @@ if __name__ == '__main__':
         # Play a regular move.
         reversi.draw_board_with_moves(board, cur_move);
         move, score = get_move(board, cur_move);
+        assert score == -8;
         print(move, score);
         reversi.make_move(board, move, cur_move);
         cur_move = reversi.get_other_player(cur_move);
