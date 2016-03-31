@@ -1,20 +1,21 @@
 # Reversi
 # Obtained from https://inventwithpython.com/reversi.py, 2016-03-28
 
-import random
-import sys
+import random;
+import sys;
+
 
 def drawBoard(board):
     # This function prints out the board that it was passed. Returns None.
-    HLINE = '  +---+---+---+---+---+---+---+---+'
-    VLINE = '  |   |   |   |   |   |   |   |   |'
+    HLINE = '  ' + '+---' * len(board) + '+';
+    VLINE = '  ' + '|   ' * len(board) + '|';
 
     print('    1   2   3   4   5   6   7   8')
     print(HLINE)
-    for y in range(8):
+    for y in range(len(board)):
         print(VLINE)
-        print(y+1, end=' ')
-        for x in range(8):
+        print(y + 1, end=' ')
+        for x in range(len(board[0])):
             print('| %s' % (board[x][y]), end=' ')
         print('|')
         print(VLINE)
@@ -49,7 +50,7 @@ def isValidMove(board, tile, xstart, ystart):
     if board[xstart][ystart] != ' ' or not isOnBoard(xstart, ystart):
         return False
 
-    board[xstart][ystart] = tile # temporarily set the tile on the board.
+    board[xstart][ystart] = tile  # temporarily set the tile on the board.
 
     if tile == 'X':
         otherTile = 'O'
@@ -59,8 +60,8 @@ def isValidMove(board, tile, xstart, ystart):
     tilesToFlip = []
     for xdirection, ydirection in [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]]:
         x, y = xstart, ystart
-        x += xdirection # first step in the direction
-        y += ydirection # first step in the direction
+        x += xdirection  # first step in the direction
+        y += ydirection  # first step in the direction
         if isOnBoard(x, y) and board[x][y] == otherTile:
             # There is a piece belonging to the other player next to our piece.
             x += xdirection
@@ -70,7 +71,7 @@ def isValidMove(board, tile, xstart, ystart):
             while board[x][y] == otherTile:
                 x += xdirection
                 y += ydirection
-                if not isOnBoard(x, y): # break out of while loop, then continue in for loop
+                if not isOnBoard(x, y):  # break out of while loop, then continue in for loop
                     break
             if not isOnBoard(x, y):
                 continue
@@ -83,15 +84,15 @@ def isValidMove(board, tile, xstart, ystart):
                         break
                     tilesToFlip.append([x, y])
 
-    board[xstart][ystart] = ' ' # restore the empty space
-    if len(tilesToFlip) == 0: # If no tiles were flipped, this is not a valid move.
+    board[xstart][ystart] = ' '  # restore the empty space
+    if len(tilesToFlip) == 0:  # If no tiles were flipped, this is not a valid move.
         return False
     return tilesToFlip
 
 
 def isOnBoard(x, y):
     # Returns True if the coordinates are located on the board.
-    return x >= 0 and x <= 7 and y >= 0 and y <=7
+    return x >= 0 and x <= 7 and y >= 0 and y <= 7
 
 
 def getBoardWithValidMoves(board, tile):
@@ -124,7 +125,7 @@ def getScoreOfBoard(board):
                 xscore += 1
             if board[x][y] == 'O':
                 oscore += 1
-    return {'X':xscore, 'O':oscore}
+    return {'X': xscore, 'O': oscore}
 
 
 def enterPlayerTile():
@@ -243,7 +244,6 @@ def showPoints(playerTile, computerTile):
     print('You have %s points. The computer has %s points.' % (scores[playerTile], scores[computerTile]))
 
 
-
 print('Welcome to Reversi!')
 
 while True:
@@ -267,7 +267,7 @@ while True:
             move = getPlayerMove(mainBoard, playerTile)
             if move == 'quit':
                 print('Thanks for playing!')
-                sys.exit() # terminate the program
+                sys.exit()  # terminate the program
             elif move == 'hints':
                 showHints = not showHints
                 continue
