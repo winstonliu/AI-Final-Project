@@ -6,20 +6,17 @@ from main import reversi
 def get_move(board, player, alpha=float('-inf'), beta=float('inf'), passed=False):
     # Terminate search at the bottom of the tree
     if len(reversi.get_valid_moves(board, player)) == 0:
-        if passed:
-            result = reversi.get_score(board);
-            return None, result['X'] - result['O'];
-        else:
-            return get_move(board, reversi.get_other_player(player), passed=True);
+        result = reversi.get_score(board);
+        return None, result['X'] - result['O'];
 
     if player == 'X':
         best_score = float('-inf');
-        for x, y in reversi.get_valid_moves(board, 'X'):
+        for move in reversi.get_valid_moves(board, 'X'):
             dupeBoard = deepcopy(board);
-            reversi.make_move(dupeBoard, x, y, 'X');
-            move, score = get_move(dupeBoard, 'O', alpha, beta);
+            reversi.make_move(dupeBoard, move, 'X');
+            _, score = get_move(dupeBoard, 'O', alpha, beta);
             if score > best_score:
-                best_move = (x, y);
+                best_move = move;
                 best_score = score;
             alpha = max(alpha, score);
             if alpha > beta:
@@ -27,12 +24,12 @@ def get_move(board, player, alpha=float('-inf'), beta=float('inf'), passed=False
         return best_move, best_score;
     else:
         best_score = float('inf');
-        for x, y in reversi.get_valid_moves(board, 'O'):
+        for move in reversi.get_valid_moves(board, 'O'):
             dupeBoard = deepcopy(board);
-            reversi.make_move(dupeBoard, x, y, 'O');
-            move, score = get_move(dupeBoard, 'X', alpha, beta);
+            reversi.make_move(dupeBoard, move, 'O');
+            _, score = get_move(dupeBoard, 'X', alpha, beta);
             if score < best_score:
-                best_move = (x, y);
+                best_move = move;
                 best_score = score;
             beta = min(beta, score);
             if alpha > beta:
@@ -61,9 +58,9 @@ if __name__ == '__main__':
 
         # Play a regular move.
         reversi.draw_board_with_moves(board, cur_move);
-        (m_x, m_y), score = get_move(board, cur_move);
-        print((m_x, m_y), score);
-        reversi.make_move(board, m_x, m_y, cur_move);
+        move, score = get_move(board, cur_move);
+        print(move, score);
+        reversi.make_move(board, move, cur_move);
         cur_move = reversi.get_other_player(cur_move);
     # Final outcome
     reversi.draw_board(board);

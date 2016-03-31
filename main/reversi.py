@@ -1,4 +1,5 @@
 import itertools;
+from copy import deepcopy;
 
 
 def make_board(size):
@@ -37,7 +38,7 @@ def get_other_player(player):
     return 'X' if player == 'O' else 'O' if player == 'X' else None;
 
 
-def get_valid_moves(board, player):
+def get_valid_moves(board, player, prev_passed=False):
     board_size = len(board);
     other_player = get_other_player(player);
     moves = [];
@@ -75,10 +76,19 @@ def get_valid_moves(board, player):
                     break;
             if valid_move_found:
                 break;
+    # If you have no valid moves, but the other player does, you must pass.
+    if len(moves) == 0 and not prev_passed and len(get_valid_moves(board, other_player, prev_passed=True)) > 0:
+        return [None];
     return moves;
 
 
-def make_move(board, x, y, player):
+def make_move(board, move, player):
+    # If this move is a pass, do nothing
+    if move is None:
+        return;
+
+    x, y = move;
+
     board_size = len(board);
     board[x][y] = player;
     other_player = get_other_player(player);
@@ -109,6 +119,7 @@ def make_move(board, x, y, player):
             # If we encounter an empty space or ourselves, this direction is invalid
             elif board[x_][y_] == ' ' or board[x_][y_] == player:
                 break;
+    return;
 
 
 def get_score(board):
@@ -128,11 +139,11 @@ def get_score(board):
 if __name__ == '__main__':
     board = make_board(4);
     draw_board_with_moves(board, 'X');
-    make_move(board, 2, 0, 'X');
+    make_move(board, (2, 0), 'X');
     draw_board_with_moves(board, 'O');
-    make_move(board, 1, 0, 'O');
+    make_move(board, (1, 0), 'O');
     draw_board_with_moves(board, 'X');
-    make_move(board, 0, 0, 'X');
+    make_move(board, (0, 0), 'X');
     draw_board_with_moves(board, 'O');
 
     print('end');
