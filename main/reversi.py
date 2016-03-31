@@ -4,10 +4,10 @@ import itertools;
 def make_board(size):
     board = [[' ' for y in range(size)] for x in range(size)];
     c = size // 2;
-    board[c - 1][c - 1] = 'X';
-    board[c - 1][c] = 'O';
-    board[c][c - 1] = 'O';
-    board[c][c] = 'X';
+    board[c - 1][c - 1] = 'O';
+    board[c - 1][c] = 'X';
+    board[c][c - 1] = 'X';
+    board[c][c] = 'O';
     return board;
 
 
