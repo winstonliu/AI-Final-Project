@@ -38,7 +38,12 @@ class Node(object):
         # Otherwise, initialize a new node and return it
         new_board = deepcopy(self.board);
         reversi.make_move(new_board, move, self.player);
-        new_node = Node(new_board, reversi.get_other_player(self.player));
+        new_hash = hash_board(new_board, reversi.get_other_player(self.player));
+        global all_nodes;
+        if new_hash in all_nodes:
+            new_node = all_nodes[new_hash];
+        else:
+            new_node = Node(new_board, reversi.get_other_player(self.player));
         self.children[move] = new_node;
         return new_node;
 
@@ -48,7 +53,8 @@ class Node(object):
                               reverse=self.player == 'X');
         if len(sorted_moves) > 0:
             return sorted_moves[0];
-        return None, 0;
+        # I have no idea what to do, pick a random move!
+        return random.choice(list(self.children.keys())), float('-inf') if self.player == 'X' else float('inf');
 
     def get_scores(self):
         return (v.score for k, v in self.children.items() if v is not None);
@@ -60,7 +66,7 @@ class Node(object):
         return self.children.__hash__();
 
 
-def get_move(board, player):
+def get_move(board, player, num_rollouts=100000):
     # Find out where we are in the game tree
     global all_nodes;
     hash = hash_board(board, player);
@@ -69,7 +75,6 @@ def get_move(board, player):
     node = all_nodes[hash_board(board, player)];
 
     # Do lots of rollouts to show that this converges to minmax.
-    num_rollouts = 500000;
     for i in range(num_rollouts):
         do_rollout(node);
 
@@ -110,29 +115,55 @@ def do_rollout(root):
 
 
 if __name__ == '__main__':
-    # The board we are playing on
-    board = reversi.make_board(4);
-    # Whose turn it is to play
-    cur_move = 'X';
-    # Flag that keeps track of if the previous player had passed (made no move)
-    passed = False;
-    while True:
-        if len(reversi.get_valid_moves(board, cur_move)) == 0:
-            # If the other player passed too, the game is over
-            if passed:
-                break;
-            # Otherwise, allow the other player to continue playing(!)
-            passed = True;
-            continue;
-        # Reset the pass counter
-        passed = False;
+    import minimax;
+    import alpha_beta;
+    from statistics import mean, stdev, mode;
 
-        # Play a regular move.
-        reversi.draw_board_with_moves(board, cur_move);
-        move, score = get_move(board, cur_move);
-        print(move, score);
-        reversi.make_move(board, move, cur_move);
-        cur_move = reversi.get_other_player(cur_move);
-    # Final outcome
-    reversi.draw_board(board);
-    print(reversi.get_score_difference(board));
+    mc_player = "X";
+
+    scores = {};
+    for rollouts in [2000, 5000, 10000, 50000, 100000]:
+        scores[rollouts] = [];
+        for game_num in range(100):
+            # Reset the game tree search
+            all_nodes = {};
+            # The board we are playing on
+            board = reversi.make_board(4);
+            # Whose turn it is to play
+            cur_move = 'X';
+            # Flag that keeps track of if the previous player had passed (made no move)
+            passed = False;
+            while True:
+                if len(reversi.get_valid_moves(board, cur_move)) == 0:
+                    # If the other player passed too, the game is over
+                    if passed:
+                        break;
+                    # Otherwise, allow the other player to continue playing(!)
+                    passed = True;
+                    continue;
+                # Reset the pass counter
+                passed = False;
+
+                # Play a regular move.
+                # reversi.draw_board_with_moves(board, cur_move);
+                if cur_move == mc_player:
+                    move, score = get_move(board, cur_move, num_rollouts=rollouts);
+                else:
+                    move, score = alpha_beta.get_move(board, cur_move);
+                # print(move, score);
+
+                reversi.make_move(board, move, cur_move);
+                cur_move = reversi.get_other_player(cur_move);
+            # Final outcome
+            # reversi.draw_board(board);
+            diff = reversi.get_score_difference(board);
+            scores[rollouts].append(diff);
+
+            print("#rollouts={}, game={}".format(rollouts, game_num));
+
+    print("MCTS playing {} --".format(mc_player));
+    for rollouts in sorted(scores.keys()):
+        results = scores[rollouts];
+        # print("{}: {} W/{} L".format(rollouts, sum(r == -8 for r in results), len(results)));
+        print(str(rollouts) + " " + " ".join([str(r) for r in results]));
+        # print("Mean score={}, stddev={}, mode={}".format(mean(results), stdev(results)));
