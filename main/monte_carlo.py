@@ -14,13 +14,9 @@ class Node(object):
         self.player = player;
         # The score starts at the worst possible score.
         self.score = float('-inf') if player == 'X' else float('inf');
+        self.parents = set();
         # Use None as a placeholder for nodes that have not yet been expanded.
         self.children = {m: None for m in reversi.get_valid_moves(board, player)};
-
-        # Cache parts of the game tree TODO need a better way of doing this
-        # There are a lot of conflicts with this method
-        global all_nodes;
-        all_nodes[hash_board(board, player)] = self;
 
     def get_child(self):
         possible_moves = list(self.children.keys());
@@ -35,16 +31,16 @@ class Node(object):
         if self.children[move] is not None:
             return self.children[move];
 
-        # Otherwise, initialize a new node and return it
+        # Otherwise, see if this node already exists
         new_board = deepcopy(self.board);
+        other_player = reversi.get_other_player(self.player);
         reversi.make_move(new_board, move, self.player);
-        new_hash = hash_board(new_board, reversi.get_other_player(self.player));
-        global all_nodes;
-        if new_hash in all_nodes:
-            new_node = all_nodes[new_hash];
-        else:
-            new_node = Node(new_board, reversi.get_other_player(self.player));
+        new_node = get_node(new_board, other_player);
+        # Add the node to children and self to parents of the child
         self.children[move] = new_node;
+        if new_node.score != float('-inf') and new_node.score != float('inf'):
+            self.update_ancestors();
+        new_node.parents.add(self);
         return new_node;
 
     def get_best_move(self):
@@ -52,27 +48,59 @@ class Node(object):
         sorted_moves = sorted(((k, v.score) for k, v in self.children.items() if v is not None), key=lambda i: i[1],
                               reverse=self.player == 'X');
         if len(sorted_moves) > 0:
+            if sorted_moves[0][1] == float('-inf') or sorted_moves[0][1] == float('inf'):
+                assert False;
             return sorted_moves[0];
         # I have no idea what to do, pick a random move!
+        print('using random move');
         return random.choice(list(self.children.keys())), float('-inf') if self.player == 'X' else float('inf');
 
     def get_scores(self):
-        return (v.score for k, v in self.children.items() if v is not None);
+        return [v.score for k, v in self.children.items() if v is not None];
+
+    def update_ancestors(self, score=None):
+        # Update my own score
+        score_before = self.score;
+        if score is not None:
+            assert len(self.children.items()) == 0;
+            # First call
+            self.score = score;
+            assert self.score != float('-inf') and self.score != float('inf');
+        else:
+            # Recursive case
+            if self.player == 'X':
+                self.score = max(self.get_scores());
+                if self.score == float('-inf'):
+                    assert False;
+            else:
+                self.score = min(self.get_scores());
+                if self.score == float('inf'):
+                    assert False;
+
+        # Propogate upwards
+        if self.score != score_before:
+            for p in self.parents:
+                p.update_ancestors();
 
     def __repr__(self):
         return str(self.board) + str(self.player);
 
     def __hash__(self):
-        return self.children.__hash__();
+        return hash_board(self.board, self.player).__hash__();
 
 
-def get_move(board, player, num_rollouts=100000):
-    # Find out where we are in the game tree
-    global all_nodes;
+def get_node(board, player):
     hash = hash_board(board, player);
-    if hash not in all_nodes:
-        Node(board, player);
-    node = all_nodes[hash_board(board, player)];
+    if hash in all_nodes:
+        return all_nodes[hash];
+    n = Node(board, player);
+    all_nodes[hash] = n;
+    return n;
+
+
+def get_move(board, player, num_rollouts=100):
+    # Find out where we are in the game tree
+    node = get_node(board, player);
 
     # Do lots of rollouts to show that this converges to minmax.
     for i in range(num_rollouts):
@@ -96,22 +124,8 @@ def do_rollout(root):
         if child is None:
             break;
         rollout.append(child);
-    # Evaluate the leaf node
-    rollout[-1].score = reversi.get_score_difference(rollout[-1].board);
-
     # Backpropogate the new score up the tree as necessary.
-    for n in reversed(rollout[:-1]):
-        assert n.player == 'X' or n.player == 'O';
-        # Update the score for the min or max player. The score of a node is the min(max) of its children.
-        # Note that we cannot perform alpha-beta pruning there because we haven't exhaustively expanded anything yet.
-        score_before = n.score;
-        if n.player == 'X':
-            n.score = max(itertools.chain([float('-inf')], n.get_scores()));
-        else:
-            n.score = min(itertools.chain([float('inf')], n.get_scores()));
-        # Stop propogation if we didn't change anything
-        if n.score == score_before:
-            break;
+    rollout[-1].update_ancestors(reversi.get_score_difference(rollout[-1].board));
 
 
 if __name__ == '__main__':
@@ -122,7 +136,7 @@ if __name__ == '__main__':
     mc_player = "X";
 
     scores = {};
-    for rollouts in [2000, 5000, 10000, 50000, 100000]:
+    for rollouts in [1, 10, 100, 1000, 10000, 50000]:
         scores[rollouts] = [];
         for game_num in range(100):
             # Reset the game tree search
