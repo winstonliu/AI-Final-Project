@@ -45,23 +45,25 @@ class Node(object):
 
     def get_best_move(self):
         assert self.player == 'X' or self.player == 'O';
+        # Pick a move leading to the maximum score
         sorted_moves = sorted(((k, v.score) for k, v in self.children.items() if v is not None), key=lambda i: i[1],
                               reverse=self.player == 'X');
         if len(sorted_moves) > 0:
-            if sorted_moves[0][1] == float('-inf') or sorted_moves[0][1] == float('inf'):
-                assert False;
+            assert sorted_moves[0][1] != float('-inf') and sorted_moves[0][1] != float('inf')
             return sorted_moves[0];
-        # I have no idea what to do, pick a random move!
-        print('using random move');
+        # No rollouts have been performed! Pick a random move
         return random.choice(list(self.children.keys())), float('-inf') if self.player == 'X' else float('inf');
 
     def get_scores(self):
-        return [v.score for k, v in self.children.items() if v is not None];
+        ''' Gets the scores of all explored children of this node. '''
+        return (v.score for k, v in self.children.items() if v is not None);
 
     def update_ancestors(self, score=None):
-        # Update my own score
+        ''' Updates the current node with the given score, then propogates the score as necessary to all ancestors of this node. '''
+
         score_before = self.score;
         if score is not None:
+            # Update my own score
             assert len(self.children.items()) == 0;
             # First call
             self.score = score;
@@ -133,51 +135,45 @@ if __name__ == '__main__':
     import alpha_beta;
     from statistics import mean, stdev, mode;
 
-    mc_player = "X";
-
-    scores = {};
-    for rollouts in [1, 10, 100, 1000, 10000, 50000]:
-        scores[rollouts] = [];
-        for game_num in range(100):
-            # Reset the game tree search
-            all_nodes = {};
-            # The board we are playing on
-            board = reversi.make_board(4);
-            # Whose turn it is to play
-            cur_move = 'X';
-            # Flag that keeps track of if the previous player had passed (made no move)
-            passed = False;
-            while True:
-                if len(reversi.get_valid_moves(board, cur_move)) == 0:
-                    # If the other player passed too, the game is over
-                    if passed:
-                        break;
-                    # Otherwise, allow the other player to continue playing(!)
-                    passed = True;
-                    continue;
-                # Reset the pass counter
+    num_games = 100;
+    rollouts_selection = [0, 2, 5];
+    # Play as both X and O
+    for mc_player in ['X', 'O']:
+        print("MCTS playing {} --".format(mc_player));
+        for rollouts in rollouts_selection:
+            # Keep track of the scores for this configuration
+            scores = [];
+            ## Play n games
+            for game_num in range(num_games):
+                # Reset the game tree search
+                all_nodes = {};
+                # The board we are playing on
+                board = reversi.make_board(4);
+                # Always start as player X
+                cur_move = 'X';
+                # Flag that keeps track of if the previous player had passed (made no move)
                 passed = False;
+                # Loop until the game is over
+                while True:
+                    if len(reversi.get_valid_moves(board, cur_move)) == 0:
+                        # If the other player passed too, the game is over
+                        if passed:
+                            break;
+                        # Otherwise, allow the other player to continue playing(!)
+                        passed = True;
+                        continue;
+                    # Reset the pass counter
+                    passed = False;
 
-                # Play a regular move.
-                # reversi.draw_board_with_moves(board, cur_move);
-                if cur_move == mc_player:
-                    move, score = get_move(board, cur_move, num_rollouts=rollouts);
-                else:
-                    move, score = alpha_beta.get_move(board, cur_move);
-                # print(move, score);
+                    # Play a regular move
+                    if cur_move == mc_player:
+                        move, score = get_move(board, cur_move, num_rollouts=rollouts);
+                    else:
+                        move, score = alpha_beta.get_move(board, cur_move);
+                    reversi.make_move(board, move, cur_move);
+                    cur_move = reversi.get_other_player(cur_move);
+                # Final outcome of the game
+                scores.append(reversi.get_score_difference(board));
 
-                reversi.make_move(board, move, cur_move);
-                cur_move = reversi.get_other_player(cur_move);
-            # Final outcome
-            # reversi.draw_board(board);
-            diff = reversi.get_score_difference(board);
-            scores[rollouts].append(diff);
-
-            print("#rollouts={}, game={}".format(rollouts, game_num));
-
-    print("MCTS playing {} --".format(mc_player));
-    for rollouts in sorted(scores.keys()):
-        results = scores[rollouts];
-        # print("{}: {} W/{} L".format(rollouts, sum(r == -8 for r in results), len(results)));
-        print(str(rollouts) + " " + " ".join([str(r) for r in results]));
-        # print("Mean score={}, stddev={}, mode={}".format(mean(results), stdev(results)));
+            # Output data
+            print(str(rollouts) + " " + " ".join([str(r) for r in scores]));
