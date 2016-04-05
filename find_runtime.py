@@ -16,8 +16,6 @@ def runtime(func):
 
 def time_func(func, rollout=0):
     timings = []
-    score = []
-
     # The board we are playing on
     board = reversi.make_board(4);
     # Whose turn it is to play
@@ -48,24 +46,27 @@ def time_func(func, rollout=0):
         reversi.make_move(board, move, cur_move);
         cur_move = reversi.get_other_player(cur_move);
     # Append score to list
-    score.append(reversi.get_score(board))
-    return (timings, score)
+    myscore = reversi.get_score_difference(board)
+    return (timings, myscore)
 
 if __name__ == '__main__':
     # Run alpha-beta and minimax
     for f in [alpha_beta, minimax]:
-        timings = time_func(f.get_move)
-        avg_timing = sum(timings)/float(len(timings))
-        print("{0} has avg runtime of {1:.4f}".format(f.__name__, avg_timing))
+        f_output = time_func(f.get_move)
+        avg_timing = sum(f_output[0])/float(len(f_output[0]))
+        print("{0} has avg runtime of {1:.4f} with score {2:.4f}".format(f.__name__, avg_timing, f_output[1]))
 
     # Run monte_carlo
-    for rollout in [2,20,200,2000]:
+    for rollout in [2,20,200,1000,2000]:
         rollout_time = []
+        rollout_score = []
         # Do x runs per rollout
-        for k in range(100):
+        for k in range(50):
             monte_carlo.all_nodes = {} # Reset nodes
-            timings = time_func(monte_carlo.get_move, rollout)
-            rollout_time.append(sum(timings)/float(len(timings)))
+            f_output = time_func(monte_carlo.get_move, rollouts)
+            rollout_time.append(sum(f_output[0])/float(len(f_output[0])))
+            rollout_score.append(f_output[1])
 
         avg_time = sum(rollout_time)/float(len(rollout_time))
-        print("Monte Carlo {0} rollouts has avg runtime of {1:.4f}".format(rollout, avg_time))
+        avg_score = sum(rollout_score)/float(len(rollout_score))
+        print("Monte Carlo {0} rollouts has avg runtime of {1:.4f}, with score {2:.4f}".format(rollout, avg_time,avg_score))
