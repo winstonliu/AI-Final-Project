@@ -63,7 +63,7 @@ if __name__ == '__main__':
         # Do x runs per rollout
         for k in range(50):
             monte_carlo.all_nodes = {} # Reset nodes
-            f_output = time_func(monte_carlo.get_move, rollouts)
+            f_output = time_func(monte_carlo.get_move, rollout)
             rollout_time.append(sum(f_output[0])/float(len(f_output[0])))
             rollout_score.append(f_output[1])
 
