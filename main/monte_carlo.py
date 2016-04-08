@@ -131,8 +131,8 @@ def do_rollout(root):
 
 
 if __name__ == '__main__':
-    import minimax;
-    import alpha_beta;
+    from main import minimax;
+    from main import alpha_beta;
     from statistics import mean, stdev, mode;
 
     num_games = 100;
